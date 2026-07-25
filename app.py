@@ -40,7 +40,7 @@ if uploaded_file and api_key:
                 """
                 
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model='gemini-2.0-flash',
                     contents=prompt,
                 )
                 
@@ -48,4 +48,3 @@ if uploaded_file and api_key:
                 st.write(response.text)
             except Exception as e:
                 st.error(f"Error running audit: {e}")
-

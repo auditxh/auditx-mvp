@@ -1,11 +1,11 @@
 import streamlit as st
-from google import genai
+from openai import OpenAI
 import pypdf
 
 st.title("AuditX — AI Freight Audit Engine")
 st.write("Upload a freight invoice PDF to detect line-item overcharges instantly.")
 
-api_key = st.text_input("Enter Free Gemini API Key", type="password")
+api_key = st.text_input("Enter Free OpenRouter API Key", type="password")
 uploaded_file = st.file_uploader("Choose a Freight Invoice (PDF)", type=["pdf"])
 
 if uploaded_file and api_key:
@@ -21,7 +21,10 @@ if uploaded_file and api_key:
     if st.button("Run Audit Engine"):
         with st.spinner("Analyzing rate discrepancies & overcharges..."):
             try:
-                client = genai.Client(api_key=clean_api_key)
+                client = OpenAI(
+                    base_url="https://openrouter.ai/api/v1",
+                    api_key=clean_api_key,
+                )
                 
                 prompt = f"""
                 You are AuditX, an automated freight audit engine. Analyze this invoice text:
@@ -39,13 +42,14 @@ if uploaded_file and api_key:
                    - Line-by-Line Overcharge Explanations
                 """
                 
-                response = client.models.generate_content(
-                    model='gemini-2.0-flash-lite',
-                    contents=prompt,
+                completion = client.chat.completions.create(
+                    model="meta-llama/llama-3.3-70b-instruct:free",
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ],
                 )
                 
                 st.markdown("### 📊 Audit Savings Report")
-                st.write(response.text)
+                st.write(completion.choices[0].message.content)
             except Exception as e:
                 st.error(f"Error running audit: {e}")
-

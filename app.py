@@ -43,7 +43,7 @@ if uploaded_file and api_key:
                 """
                 
                 completion = client.chat.completions.create(
-                    model="google/gemini-2.0-flash-lite-001:free",
+                    model="openrouter/free",
                     messages=[
                         {"role": "user", "content": prompt}
                     ],

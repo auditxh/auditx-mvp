@@ -43,7 +43,7 @@ if uploaded_file and api_key:
                 """
                 
                 completion = client.chat.completions.create(
-                    model="meta-llama/llama-3.3-70b-instruct:free",
+                    model="google/gemini-2.0-flash-lite-001:free",
                     messages=[
                         {"role": "user", "content": prompt}
                     ],
@@ -53,3 +53,4 @@ if uploaded_file and api_key:
                 st.write(completion.choices[0].message.content)
             except Exception as e:
                 st.error(f"Error running audit: {e}")
+

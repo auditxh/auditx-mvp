@@ -1,210 +1,84 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AuditX - AI Freight Invoice Auditor</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-        body {
-            background-color: #f4f6f9;
-            margin: 0;
-            padding: 40px 20px;
-            color: #333;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-        h1 {
-            margin-top: 0;
-            color: #111827;
-        }
-        .subtitle {
-            color: #6b7280;
-            margin-bottom: 24px;
-        }
-        .upload-box {
-            border: 2px dashed #3b82f6;
-            background-color: #eff6ff;
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-        .upload-box:hover {
-            background-color: #dbeafe;
-        }
-        .file-input {
-            display: none;
-        }
-        .upload-btn {
-            background-color: #2563eb;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 6px;
-            display: inline-block;
-            margin-top: 10px;
-            font-weight: 600;
-        }
-        .status-msg {
-            margin-top: 15px;
-            font-size: 14px;
-            color: #059669;
-            font-weight: 600;
-        }
-        .results-card {
-            margin-top: 30px;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 20px;
-            display: none; /* Hidden until file upload */
-        }
-        .results-header {
-            font-size: 18px;
-            font-weight: bold;
-            color: #111827;
-            margin-bottom: 12px;
-        }
-        .summary-box {
-            background-color: #fef2f2;
-            border-left: 4px solid #ef4444;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
-        .summary-title {
-            font-weight: bold;
-            color: #991b1b;
-        }
-        .summary-desc {
-            color: #7f1d1d;
-            margin-top: 4px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            text-align: left;
-            padding: 12px;
-            border-bottom: 1px solid #e5e7eb;
-            font-size: 14px;
-        }
-        th {
-            background-color: #f9fafb;
-            color: #4b5563;
-        }
-        .badge-overcharge {
-            background-color: #fef2f2;
-            color: #dc2626;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
+import streamlit as st
+import pypdf
+import os
+import re
 
-<div class="container">
-    <h1>AuditX: AI Freight Invoice Auditor</h1>
-    <p class="subtitle">Upload your carrier invoice PDF to automatically check for rate errors and overcharges.</p>
+# Page Configuration
+st.set_page_config(page_title="AuditX - Freight Invoice Auditor", page_icon="🚚", layout="centered")
 
-    <div class="upload-box" id="dropZone" onclick="document.getElementById('fileInput').click()">
-        <div>📁 <strong>Click or Drag Freight Invoice (PDF) Here</strong></div>
-        <div class="upload-btn">Choose File</div>
-        <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileUpload(event)">
-    </div>
+st.title("🚚 AuditX: AI Freight Invoice Auditor")
+st.write("Upload a freight invoice PDF to detect rate card overcharges, fuel surcharge variances, and weight discrepancies.")
 
-    <div id="statusMessage" class="status-msg"></div>
+# File Uploader
+uploaded_file = st.file_uploader("Upload Freight Invoice (PDF)", type=["pdf"])
 
-    <div id="resultsCard" class="results-card">
-        <div class="results-header">Audit Results Summary</div>
+if uploaded_file is not None:
+    st.success(f"File '{uploaded_file.name}' uploaded successfully!")
+    
+    # 1. Extract Text using pypdf (From your requirements.txt)
+    extracted_text = ""
+    try:
+        reader = pypdf.PdfReader(uploaded_file)
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                extracted_text += text + "\n"
+    except Exception as e:
+        st.error(f"Error reading PDF: {e}")
+
+    # Show raw extracted text inside an expander
+    with st.expander("📄 View Extracted Raw Text"):
+        st.text(extracted_text if extracted_text else "No readable text found in PDF.")
+
+    # 2. Audit Logic Engine
+    st.markdown("---")
+    st.subheader("📊 Invoice & Weight Discrepancy Report")
+
+    if extracted_text:
+        # Extract dollar amounts and weight metrics
+        amounts = re.findall(r'\$\s*[\d,]+\.\d{2}', extracted_text)
+        weights = re.findall(r'[\d,]+\s*(?:kg|lbs|ctn|pkg)', extracted_text, re.IGNORECASE)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Extracted Dollar Amounts", len(amounts))
+            if amounts:
+                for amt in amounts[:5]:
+                    st.write(f"- `{amt}`")
         
-        <div class="summary-box">
-            <div class="summary-title" id="summaryTitle">Audit Complete!</div>
-            <div class="summary-desc" id="summaryDetail">Processing details...</div>
-        </div>
+        with col2:
+            st.metric("Extracted Weights / Quantities", len(weights))
+            if weights:
+                for w in weights[:5]:
+                    st.write(f"- `{w}`")
 
-        <h3>Extracted Line Item Breakdown</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Line Item</th>
-                    <th>Billed Amount</th>
-                    <th>Contract Rate</th>
-                    <th>Variance / Discrepancy</th>
-                </tr>
-            </thead>
-            <tbody id="invoiceTableBody">
-                </tbody>
-        </table>
-    </div>
-</div>
+        st.markdown("### 🔍 Flagged Discrepancies")
 
-<script>
-    function handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+        # Dynamic Benchmark Detection
+        total_match = re.search(r'TOTAL.*?\$\s*([\d,]+\.\d{2})', extracted_text, re.IGNORECASE)
+        expected_match = re.search(r'EXPECTED.*?\$\s*([\d,]+\.\d{2})', extracted_text, re.IGNORECASE)
 
-        // Reset previous view to prevent duplicate UI logs
-        const statusMsg = document.getElementById('statusMessage');
-        const resultsCard = document.getElementById('resultsCard');
-        const tableBody = document.getElementById('invoiceTableBody');
+        if total_match and expected_match:
+            total_billed = float(total_match.group(1).replace(',', ''))
+            total_expected = float(expected_match.group(1).replace(',', ''))
+            overcharge = total_billed - total_expected
 
-        statusMsg.innerText = `File '${file.name}' uploaded successfully! Parsing content...`;
-        resultsCard.style.display = 'none';
-        tableBody.innerHTML = '';
+            if overcharge > 0:
+                st.error(f"🚨 **OVERCHARGE FLAG: ${overcharge:,.2f} Variance Detected**")
+                st.write(f"* **Billed Rate:** `${total_billed:,.2f}`")
+                st.write(f"* **Contracted Rate:** `${total_expected:,.2f}`")
+                st.write("* **Action:** Dispute unverified surcharges with carrier.")
+            else:
+                st.success("✅ **AUDIT PASSED:** Billed amount matches contracted benchmark.")
+        else:
+            # Fallback heuristic check if explicit TOTAL/EXPECTED benchmark tags aren't present
+            if "Peak Season" in extracted_text or "PSS" in extracted_text or "Fuel" in extracted_text:
+                st.warning("⚠️ **POTENTIAL SURCHARGE LEAKAGE DETECTED**")
+                st.write("Unverified Peak Season Surcharges (PSS) or Fuel Surcharges (BAF) were found in this PDF.")
+                st.write("Check line-item rate cards to verify if these charges were contractually agreed upon.")
+            else:
+                st.info("ℹ️ PDF text parsed successfully. No immediate rate card variances flagged.")
 
-        // Simulate Dynamic Processing based on file content/name
-        setTimeout(() => {
-            statusMsg.innerText = `Audit Complete for '${file.name}'`;
-            
-            // Extract & Display Dynamic Audit Data
-            displayDynamicAuditResults(file.name);
-            resultsCard.style.display = 'block';
-        }, 1200);
-    }
+else:
+    st.info("Upload a carrier invoice PDF above to begin the audit.")
 
-    function displayDynamicAuditResults(filename) {
-        // Dynamic mock data tailored to specific demo files
-        let auditData = {
-            totalDiscrepancy: "$750.00",
-            issueSummary: "Unverified Peak Season Surcharge (PSS) & Fuel Variance detected.",
-            items: [
-                { item: "Base Ocean Freight", billed: "$2,200.00", contracted: "$1,800.00", variance: "+$400.00" },
-                { item: "Fuel Surcharge (BAF)", billed: "$450.00", contracted: "$300.00", variance: "+$150.00" },
-                { item: "Peak Season Surcharge (PSS)", billed: "$200.00", contracted: "$0.00", variance: "+$200.00" },
-                { item: "Terminal Handling Charge (THC)", billed: "$142.38", contracted: "$142.38", variance: "$0.00" }
-            ]
-        };
-
-        // Render Summary
-        document.getElementById('summaryTitle').innerText = `Total Overcharge Flagged: ${auditData.totalDiscrepancy}`;
-        document.getElementById('summaryDetail').innerText = `File analyzed: ${filename}. ${auditData.issueSummary}`;
-
-        // Render Table Rows
-        const tableBody = document.getElementById('invoiceTableBody');
-        auditData.items.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${row.item}</strong></td>
-                <td>${row.billed}</td>
-                <td>${row.contracted}</td>
-                <td><span class="${row.variance !== '$0.00' ? 'badge-overcharge' : ''}">${row.variance}</span></td>
-            `;
-            tableBody.appendChild(tr);
-        });
-    }
-</script>
-
-</body>
-</html>

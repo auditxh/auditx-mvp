@@ -1,6 +1,5 @@
 import streamlit as st
 import pypdf
-import os
 import re
 
 # Page Configuration
@@ -15,7 +14,7 @@ uploaded_file = st.file_uploader("Upload Freight Invoice (PDF)", type=["pdf"])
 if uploaded_file is not None:
     st.success(f"File '{uploaded_file.name}' uploaded successfully!")
     
-    # 1. Extract Text using pypdf (From your requirements.txt)
+    # 1. Extract Text using pypdf
     extracted_text = ""
     try:
         reader = pypdf.PdfReader(uploaded_file)
@@ -71,7 +70,7 @@ if uploaded_file is not None:
             else:
                 st.success("✅ **AUDIT PASSED:** Billed amount matches contracted benchmark.")
         else:
-            # Fallback heuristic check if explicit TOTAL/EXPECTED benchmark tags aren't present
+            # Fallback check if explicit benchmark headers aren't present
             if "Peak Season" in extracted_text or "PSS" in extracted_text or "Fuel" in extracted_text:
                 st.warning("⚠️ **POTENTIAL SURCHARGE LEAKAGE DETECTED**")
                 st.write("Unverified Peak Season Surcharges (PSS) or Fuel Surcharges (BAF) were found in this PDF.")
@@ -81,4 +80,3 @@ if uploaded_file is not None:
 
 else:
     st.info("Upload a carrier invoice PDF above to begin the audit.")
-

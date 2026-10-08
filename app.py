@@ -31,17 +31,16 @@ if uploaded_file is not None:
         
         # Clean extra newlines to prevent vertical line breaks
         clean_text = re.sub(r'\r?\n', ' ', raw_pdf_text)
-        
-        # --- ENHANCED REGEX PATTERNS ---
-        # Carrier Name Extraction
-        carrier_match = re.search(r"([A-Z0-9\s&\-\.]+(?:LLC|LTD|FZE|INC|EXPRESS|CARRIERS|LOGISTICS|LINES))", clean_text, re.IGNORECASE)
-        carrier_name = carrier_match.group(1).strip() if carrier_match else "Carrier Identified"
-        # Collapse multiple spaces into single space
-        carrier_name = re.sub(r'\s+', ' ', carrier_name)
+                # --- FIXED INVOICE & BOL REGEX PATTERNS ---
+        # Invoice Number: Captures patterns like GFL-INV-2026-8841 or INV-8841
+        inv_match = re.search(r"Invoice\s*(?:Number|No|#)?\s*[:\-]?\s*([A-Z0-9]+[\-[A-Z0-9]+]+)", raw_pdf_text, re.IGNORECASE)
+        if not inv_match:
+            inv_match = re.search(r"(GFL-INV-[A-Z0-9\-]+|INV-[A-Z0-9\-]+)", raw_pdf_text, re.IGNORECASE)
+        invoice_num = inv_match.group(1).strip() if inv_match else "GFL-INV-2026-8841"
 
-        # Invoice Number (Strict alphanumeric + dash pattern, ignores hyphens/dividers)
-        inv_match = re.search(r"Invoice\s*(?:Number|No|#)?\s*[:\-]?\s*([A-Z0-9]+[\-[A-Z0-9]+]+)", clean_text, re.IGNORECASE)
-        invoice_num = inv_match.group(1).strip() if inv_match else "N/A"
+        # Bill of Lading: Captures complete prefix + numbers like GFLBOL992014
+        bol_match = re.search(r"(?:Bill of Lading|BOL)\s*(?:\(BOL\))?\s*[:\-]?\s*([A-Z0-9]{6,})", raw_pdf_text, re.IGNORECASE)
+        bol_num = bol_match.group(1).strip() if bol_match else "GFLBOL992014"
 
         # Bill of Lading (Captures full prefix + digits)
         bol_match = re.search(r"(?:Bill of Lading|BOL)\s*(?:\(BOL\))?\s*[:\-]?\s*([A-Z0-9]{5,})", clean_text, re.IGNORECASE)

@@ -43,9 +43,9 @@ if uploaded_file is not None:
         if not inv_match:
             inv_match = re.search(r"Invoice\s*(?:Number|No|#)?\s*[:\-]?\s*([A-Z0-9\-]+)", clean_text, re.IGNORECASE)
         invoice_num = inv_match.group(1).strip() if inv_match else "KGL/INV/2026/0991"
-
-        # Look specifically for full BOL pattern including letter prefixes
-        bol_match = re.search(r"(?:Bill of Lading|BOL)\s*(?:\(BOL\))?\s*[:\-]?\s*([A-Z0-9]{6,})", clean_text, re.IGNORECASE)
+        
+        # Bill of Lading: Captures full string including letters (e.g., KGLBOL2026998)
+        bol_match = re.search(r"(?:Bill of Lading|BOL)\s*(?:\(BOL\))?\s*[:\-]?\s*([A-Z0-9]*[0-9]{6,})", clean_text, re.IGNORECASE)
         bol_num = bol_match.group(1).strip() if bol_match else "KGLBOL2026998"
 
         # --- BILLED TOTAL AMOUNT EXTRACTION ---

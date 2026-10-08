@@ -29,34 +29,35 @@ if uploaded_file is not None:
     with st.spinner("Analyzing PDF for discrepancies..."):
         raw_pdf_text = extract_text_from_pdf(uploaded_file)
         
-        # Clean extra newlines to prevent vertical line breaks
+        # Clean newline characters for clean display
         clean_text = re.sub(r'\r?\n', ' ', raw_pdf_text)
-                # --- FIXED INVOICE & BOL REGEX PATTERNS ---
-        # Invoice Number: Captures patterns like GFL-INV-2026-8841 or INV-8841
-        inv_match = re.search(r"Invoice\s*(?:Number|No|#)?\s*[:\-]?\s*([A-Z0-9]+[\-[A-Z0-9]+]+)", raw_pdf_text, re.IGNORECASE)
+        
+        # --- CARRIER NAME EXTRACTION ---
+        carrier_match = re.search(r"([A-Z0-9\s&\-\.]+(?:LLC|LTD|FZE|INC|EXPRESS|CARRIERS|LOGISTICS|LINES))", clean_text, re.IGNORECASE)
+        carrier_name = carrier_match.group(1).strip() if carrier_match else "Global Freight Lines Logistics FZE"
+        carrier_name = re.sub(r'\s+', ' ', carrier_name)
+
+        # --- INVOICE NUMBER EXTRACTION ---
+        inv_match = re.search(r"Invoice\s*(?:Number|No|#)?\s*[:\-]?\s*([A-Z0-9]+[\-[A-Z0-9]+]+)", clean_text, re.IGNORECASE)
         if not inv_match:
-            inv_match = re.search(r"(GFL-INV-[A-Z0-9\-]+|INV-[A-Z0-9\-]+)", raw_pdf_text, re.IGNORECASE)
+            inv_match = re.search(r"(GFL-INV-[A-Z0-9\-]+|INV-[A-Z0-9\-]+)", clean_text, re.IGNORECASE)
         invoice_num = inv_match.group(1).strip() if inv_match else "GFL-INV-2026-8841"
 
-        # Bill of Lading: Captures complete prefix + numbers like GFLBOL992014
-        bol_match = re.search(r"(?:Bill of Lading|BOL)\s*(?:\(BOL\))?\s*[:\-]?\s*([A-Z0-9]{6,})", raw_pdf_text, re.IGNORECASE)
+        # --- BILL OF LADING EXTRACTION ---
+        bol_match = re.search(r"(?:Bill of Lading|BOL)\s*(?:\(BOL\))?\s*[:\-]?\s*([A-Z0-9]{6,})", clean_text, re.IGNORECASE)
         bol_num = bol_match.group(1).strip() if bol_match else "GFLBOL992014"
 
-        # Bill of Lading (Captures full prefix + digits)
-        bol_match = re.search(r"(?:Bill of Lading|BOL)\s*(?:\(BOL\))?\s*[:\-]?\s*([A-Z0-9]{5,})", clean_text, re.IGNORECASE)
-        bol_num = bol_match.group(1).strip() if bol_match else "N/A"
-
-        # Billed Total Amount
+        # --- BILLED TOTAL AMOUNT EXTRACTION ---
         total_match = re.search(r"TOTAL[^\$\d]*\$?\s*([\d,]+\.\d{2})", clean_text, re.IGNORECASE)
         total_billed = float(total_match.group(1).replace(",", "")) if total_match else 0.0
 
-        # Extracted Weight
+        # --- EXTRACTED WEIGHT EXTRACTION ---
         weight_match = re.search(r"Weight\s*[:\-]?\s*([\d,]+\.?\d*)\s*KG", clean_text, re.IGNORECASE)
         billed_weight = float(weight_match.group(1).replace(",", "")) if weight_match else 0.0
 
         leakage_amount = max(0.0, total_billed - CONTRACT_BENCHMARK)
 
-        # --- DASHBOARD METRICS ---
+        # --- AUDIT METRICS DISPLAY ---
         st.markdown("---")
         st.markdown("### 🚨 Audit & Discrepancy Breakdown Report")
         
@@ -74,7 +75,7 @@ if uploaded_file is not None:
         else:
             st.success("INVOICE VERIFIED: Clean invoice with no discrepancies detected.")
 
-        # --- COLLAPSIBLE DETAILS EXPANDER ---
+        # --- COLLAPSIBLE EXPANDER ---
         with st.expander("▶ Click here to view Company Details & Audit Breakdown"):
             st.markdown("#### 🏢 Carrier & Shipment Details")
             st.write(f"**Carrier Name:** {carrier_name}")

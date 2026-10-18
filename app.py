@@ -30,7 +30,7 @@ if uploaded_file is not None:
             # Call Free Gemini Flash API
             client = genai.Client(api_key=api_key)
             
-            prompt = f"""
+                        prompt = f"""
             You are an elite enterprise financial auditor and cross-industry invoice compliance expert. Analyze this vendor invoice text regardless of the industry (Logistics, SaaS, Healthcare, Retail, Professional Services, etc.) and generate a professional, structured executive audit report.
 
             Format your output strictly using clean headings, bold labels, and bullet points as follows:
@@ -40,6 +40,7 @@ if uploaded_file is not None:
             - **Invoice Number:** [Extract Invoice Number]
             - **Reference / PO Number:** [Extract PO/Contract Number or state MISSING]
             - **Gross Amount Billed:** [Extract Total Billed Amount]
+            - **Total Discrepancy Amount:** [Calculate and state the exact sum of all flagged disputed fees]
             - **Audit Verdict:** [Approved / Disputed / Short-pay Recommended]
 
             ### 🚨 Discrepancy Breakdown & Risk Analysis
@@ -55,6 +56,7 @@ if uploaded_file is not None:
             Invoice Text:
             {extracted_text}
             """
+
 
             response = client.models.generate_content(
                 model='gemini-3.8-flash',

@@ -30,13 +30,29 @@ if uploaded_file is not None:
             # Call Free Gemini Flash API
             client = genai.Client(api_key=api_key)
             prompt = f"""
-            You are an expert enterprise financial auditor. Analyze this invoice text and identify any pricing discrepancies, unauthorized tax, or line-item variances.
-            Return the output cleanly with:
-            - Vendor Name
-            - Invoice Number
-            - Purchase Order (PO) Number
-            - Gross Amount Billed
-            - Discrepancy Breakdown / Variances Found
+You are an elite enterprise financial auditor and freight contract compliance expert. Analyze this vendor invoice text and generate a professional, structured executive audit report.
+Format your output strictly using clean headings, bold labels, and bullet points as follows:
+### 📋 Executive Summary
+- **Vendor Name:** [Extract Vendor Name]
+- **Invoice Number:** [Extract Invoice Number]
+- **Purchase Order (PO) Number:** [Extract PO Number or state MISSING]
+- **Gross Amount Billed:** [Extract Total Billed Amount]
+- **Audit Verdict:** [Approved / Disputed / Short-pay Recommended]
+
+### 🚨 Discrepancy Breakdown & Risk Analysis
+List each finding clearly with its financial impact:
+- **[Discrepancy Name / Fee Category] ([Dollar Amount]):** 
+  - **Issue:** [Clear 1-sentence explanation of why it violates standard terms]
+  - **Auditor Finding:** [Operational or mathematical reasoning]
+
+### 💡 Recommended Auditor Action
+- **Short-pay / Hold Amount:** [Exact dollar amount to withhold]
+- **Required Vendor Action:** [What documentation or correction the vendor must provide before final payout]
+
+Invoice Text:
+{extracted_text}
+"""
+
             
             Invoice Text:
             {extracted_text}

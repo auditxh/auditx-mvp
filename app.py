@@ -30,33 +30,32 @@ if uploaded_file is not None:
             # Call Free Gemini Flash API
             client = genai.Client(api_key=api_key)
             
-                        prompt = f"""
-            You are an elite enterprise financial auditor and cross-industry invoice compliance expert. Analyze this vendor invoice text regardless of the industry (Logistics, SaaS, Healthcare, Retail, Professional Services, etc.) and generate a professional, structured executive audit report.
+            prompt = f"""
+You are an elite enterprise financial auditor and cross-industry invoice compliance expert. Analyze this vendor invoice text regardless of the industry (Logistics, SaaS, Healthcare, Retail, Professional Services, etc.) and generate a professional, structured executive audit report.
 
-            Format your output strictly using clean headings, bold labels, and bullet points as follows:
+Format your output strictly using clean headings, bold labels, and bullet points as follows:
 
-            ### 📋 Executive Summary
-            - **Vendor Name:** [Extract Vendor Name]
-            - **Invoice Number:** [Extract Invoice Number]
-            - **Reference / PO Number:** [Extract PO/Contract Number or state MISSING]
-            - **Gross Amount Billed:** [Extract Total Billed Amount]
-            - **Total Discrepancy Amount:** [Calculate and state the exact sum of all flagged disputed fees]
-            - **Audit Verdict:** [Approved / Disputed / Short-pay Recommended]
+### 📋 Executive Summary
+- **Vendor Name:** [Extract Vendor Name]
+- **Invoice Number:** [Extract Invoice Number]
+- **Reference / PO Number:** [Extract PO/Contract Number or state MISSING]
+- **Gross Amount Billed:** [Extract Total Billed Amount]
+- **Total Discrepancy Amount:** [Calculate and state the exact sum of all flagged disputed fees]
+- **Audit Verdict:** [Approved / Disputed / Short-pay Recommended]
 
-            ### 🚨 Discrepancy Breakdown & Risk Analysis
-            List each finding clearly with its financial impact:
-            - **[Discrepancy Name / Fee Category] ([Dollar Amount]):** 
-              - **Issue:** [Clear 1-sentence explanation of why it violates billing terms or business logic]
-              - **Auditor Finding:** [Mathematical, contractual, or operational reasoning]
+### 🚨 Discrepancy Breakdown & Risk Analysis
+List each finding clearly with its financial impact:
+- **[Discrepancy Name / Fee Category] ([Dollar Amount]):** 
+  - **Issue:** [Clear 1-sentence explanation of why it violates billing terms or business logic]
+  - **Auditor Finding:** [Mathematical, contractual, or operational reasoning]
 
-            ### 💡 Recommended Auditor Action
-            - **Short-pay / Hold Amount:** [Exact dollar amount to withhold]
-            - **Required Vendor Action:** [What documentation or correction the vendor must provide before final payout]
+### 💡 Recommended Auditor Action
+- **Short-pay / Hold Amount:** [Exact dollar amount to withhold]
+- **Required Vendor Action:** [What documentation or correction the vendor must provide before final payout]
 
-            Invoice Text:
-            {extracted_text}
-            """
-
+Invoice Text:
+{extracted_text}
+"""
 
             response = client.models.generate_content(
                 model='gemini-3.8-flash',

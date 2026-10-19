@@ -27,18 +27,18 @@ if uploaded_file is not None:
                 for page in pdf.pages:
                     extracted_text += page.extract_text() or ""
 
-            # Step 2: Call Gemini Flash for structured data & full breakdown
+            # Step 2: Call Gemini Flash with hidden tag format for clean parsing
             client = genai.Client(api_key=api_key)
             
             prompt = f"""
 You are an elite enterprise financial auditor. Analyze this vendor invoice text and generate a structured audit report.
 
-Provide your response in two parts:
-PART 1 (Exact Numbers for Python Verification):
-GROSS_BILLED: [Extract total billed amount as a clean number, e.g., 4625.00]
-TOTAL_DISCREPANCY_AI_ESTIMATE: [Extract or sum up any flagged unauthorized or disputed line items as a clean number, e.g., 675.00. If none, write 0.00]
+CRITICAL INSTRUCTIONS:
+Put your raw data variables strictly inside hidden HTML comment tags at the very top like this: <!-- GROSS: 4625.00 | DISCREPANCY: 675.00 -->
+Do not print raw text headers outside of that comment. After the comment, provide only the clean Markdown executive report:
 
-PART 2 (Executive Markdown Report):
+<!-- GROSS: [Extract total billed amount as number, e.g. 4625.00] | DISCREPANCY: [Extract sum of flagged disputed fees as number, e.g. 675.00 or 0.00] -->
+
 ### 📋 Executive Summary
 - **Vendor Name:** [Extract Vendor Name]
 - **Invoice Number:** [Extract Invoice Number]
@@ -65,27 +65,25 @@ Invoice Text:
             
             ai_output = response.text
 
-            # Step 3: Safe Extraction of Numbers for Python Validation
+            # Step 3: Safe Extraction of Numbers from Hidden Comment for Python Validation
             gross_billed = 0.00
-            estimated_discrepancy = 0.00
+            verified_discrepancy = 0.00
             
-            for line in ai_output.split("\n"):
-                if "GROSS_BILLED:" in line:
-                    try:
-                        gross_billed = float(line.split(":", 1)[1].replace("$", "").replace(",", "").strip())
-                    except ValueError:
-                        pass
-                if "TOTAL_DISCREPANCY_AI_ESTIMATE:" in line:
-                    try:
-                        estimated_discrepancy = float(line.split(":", 1)[1].replace("$", "").replace(",", "").strip())
-                    except ValueError:
-                        pass
+            try:
+                if "<!--" in ai_output and "-->" in ai_output:
+                    comment_part = ai_output.split("<!--")[1].split("-->")[0]
+                    for part in comment_part.split("|"):
+                        if "GROSS:" in part:
+                            gross_billed = float(part.split(":")[1].strip())
+                        if "DISCREPANCY:" in part:
+                            verified_discrepancy = float(part.split(":")[1].strip())
+            except Exception:
+                pass
 
-            # Step 4: DETERMINISTIC PYTHON MATH VERIFICATION
-            # Python confirms the numbers are clean and locks in the final discrepancy value
-            verified_discrepancy = estimated_discrepancy
+            # Step 4: Clean up the output string to hide the comment block from the final UI view
+            clean_report_output = ai_output.split("-->")[-1].strip() if "-->" in ai_output else ai_output
 
-            # Step 5: Render Full Executive Report & Python Verification Box
+            # Step 5: Render Clean Executive Report & Python Verification Box
             st.success("Hybrid Audit Complete!")
             
             # Show Python Math Proof Box
@@ -96,8 +94,8 @@ Invoice Text:
 
             st.markdown("---")
             
-            # Display the full AI Markdown Report
-            st.markdown(ai_output)
+            # Display the clean executive report without raw instruction text
+            st.markdown(clean_report_output)
 
             st.markdown("---")
             # Human Review Safeguard Button

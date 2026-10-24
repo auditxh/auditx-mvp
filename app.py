@@ -101,3 +101,14 @@ Invoice Text:
             # Human Review Safeguard Button
             if st.button("Approve & Confirm Short-Pay Action"):
                 st.info(f"Action successfully recorded: Flagged ${verified_discrepancy:,.2f} for human sign-off and vendor dispute notice.")
+
+# --- Shopify Integration Status Check ---
+SHOPIFY_CLIENT_ID = st.secrets.get("SHOPIFY_CLIENT_ID", "d5d1d797dc426117b15464b0a158cb61")
+SHOPIFY_CLIENT_SECRET = st.secrets.get("SHOPIFY_CLIENT_SECRET", "")
+
+st.sidebar.title("Shopify Store Status")
+if SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET:
+    st.sidebar.success("✅ Shopify App Credentials Connected!")
+else:
+    st.sidebar.warning("⚠️ Shopify credentials missing from secrets.")
+

@@ -58,27 +58,32 @@ Invoice Text:
 {extracted_text}
 """
 
-            import time
+# --- PUT THE RETRY LOOP RIGHT HERE (AFTER THE PROMPT IS CREATED) ---
+import time
 from google.genai.errors import ServerError
 
-# --- AUTO-RETRY WRAPPER FOR 503 ERRORS ---
 max_retries = 3
 response = None
 
 for attempt in range(max_retries):
     try:
         response = client.models.generate_content(
-            model='gemini-1.5-flash',  # Keep whatever model name you were using here
+            model='gemini-1.5-flash',
             contents=prompt
         )
-        break  # Success! Exit the retry loop.
+        break  # Success! Exit loop.
     except ServerError as e:
         if attempt < max_retries - 1:
-            time.sleep(2 * (attempt + 1))  # Wait 2 seconds, then 4 seconds...
+            time.sleep(2 * (attempt + 1))
             continue
         else:
-            st.error("⚠️ Google's AI servers are currently experiencing high demand (503 Error). Please wait 10 seconds and try uploading again.")
+            st.error("⚠️ Google's AI servers are experiencing high demand (503 Error). Please try again in 10 seconds.")
             st.stop()
+
+# After this, line 85 picks up with: ai_output = response.text
+
+
+            
 # ----------------------------------------
 
             

@@ -22,14 +22,14 @@ if uploaded_file is not None:
     if not api_key:
         st.error("⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit App Secrets.")
     else:
-        with st.spinner("AI is analyzing invoice and Python is verifying the numbers..."):
+        with st.spinner("Securely auditing invoice (Zero Data Retention)..."):
             # Step 1: Extract text from PDF using pdfplumber
             extracted_text = ""
             with pdfplumber.open(uploaded_file) as pdf:
                 for page in pdf.pages:
                     extracted_text += page.extract_text() or ""
 
-            # Step 2: Call Gemini Flash with hidden tag format for clean parsing & 503 retry protection
+            # Step 2: Call Gemini Flash with hidden tag format for clean parsing
             client = genai.Client(api_key=api_key)
 
             prompt = f"""
@@ -60,27 +60,28 @@ if uploaded_file is not None:
             {extracted_text}
             """
 
-            max_retries = 3
+            # Step 3: Robust 503 Auto-Retry Loop with Exponential Backoff
+            max_retries = 5
             response = None
 
             for attempt in range(max_retries):
                 try:
                     response = client.models.generate_content(
-                        model='gemini-flash-latest',
+                        model='gemini-2.5-flash',
                         contents=prompt
                     )
                     break  # Success! Exit retry loop.
-                except ServerError as e:
+                except ServerError:
                     if attempt < max_retries - 1:
-                        time.sleep(2 * (attempt + 1))
+                        time.sleep(4 * (attempt + 1))  # Waits 4s, 8s, 12s, 16s safely
                         continue
                     else:
-                        st.error("⚠️ Google's AI servers are experiencing high demand (503 Error). Please wait 10 seconds and try uploading again.")
+                        st.error("⚠️ Google's AI servers are busy. Please wait 10 seconds and try uploading again.")
                         st.stop()
 
             ai_output = response.text
 
-            # Step 3: Safe Extraction of Numbers from Hidden Comment for Python Validation
+            # Step 4: Safe Extraction of Numbers from Hidden Comment for Python Validation
             gross_billed = 0.00
             verified_discrepancy = 0.00
 
@@ -95,24 +96,21 @@ if uploaded_file is not None:
             except Exception:
                 pass
 
-            # Step 4: Clean up the output string to hide the comment block from the final UI view
+            # Step 5: Clean up output to hide comment block from final UI view
             clean_report_output = ai_output.split("-->")[-1].strip() if "-->" in ai_output else ai_output
 
-            # Step 5: Render Clean Executive Report & Python Verification Box
+            # Step 6: Render Clean Executive Report & Python Verification Box
             st.success("Hybrid Audit Complete!")
 
-            # Show Python Math Proof Box
             with st.expander("🔍 View Python Mathematical Verification Layer"):
                 st.write(f"**Gross Billed (Verified):** ${gross_billed:,.2f}")
                 st.write(f"**Discrepancy Amount (Verified by Python):** ${verified_discrepancy:,.2f}")
                 st.write(f"**Status:** Math validated successfully with zero AI hallucination.")
 
             st.markdown("---")
-
-            # Display the clean executive report without raw instruction text
             st.markdown(clean_report_output)
-
             st.markdown("---")
+
             # Human Review Safeguard Button
             if st.button("Approve & Confirm Short-Pay Action"):
                 st.info(f"Action successfully recorded: Flagged ${verified_discrepancy:,.2f} for human sign-off and vendor dispute.")

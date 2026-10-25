@@ -66,7 +66,7 @@ if uploaded_file is not None:
             for attempt in range(max_retries):
                 try:
                     response = client.models.generate_content(
-                        model='gemini-1.5-flash',
+                        model='gemini-flash-latest',
                         contents=prompt
                     )
                     break  # Success! Exit retry loop.

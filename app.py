@@ -73,7 +73,7 @@ Invoice Text:
       for attempt in range(max_retries):
         try:
           response = client.models.generate_content(
-              model="gemini-4-flash", contents=prompt
+              model="gemini-1.5-flash", contents=prompt
           )
           break
         except ServerError:

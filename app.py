@@ -2,8 +2,8 @@ import json
 import os
 import pandas as pd
 import pdfplumber
-from google.genai import errors as ServerError
-from google.genai import genai
+from google import genai
+from google.genai.errors import ServerError
 import streamlit as st
 import time
 
@@ -30,6 +30,9 @@ if uploaded_file is not None:
         " Secrets."
     )
   else:
+    # Initialize the GenAI client correctly
+    client = genai.Client(api_key=api_key)
+
     with st.spinner("Securely Auditing Invoice (Zero Data Retention)..."):
       extracted_text = ""
       with pdfplumber.open(uploaded_file) as pdf:

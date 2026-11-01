@@ -72,7 +72,7 @@ Invoice Text:
         for attempt in range(max_retries):
             try:
                 response = client.models.generate_content(
-                    model="gemini-3.8-flash", contents=prompt
+                    model="gemini-2.5-flash", contents=prompt
                 )
                 break
             except Exception as e:
@@ -152,7 +152,7 @@ Invoice Text:
             json_file = json.dumps(
                 {
                     "gross_billed": gross_billed,
-                    "verified_discrepancy": verified_discrepancy,
+                    "verified_discrepancy": verified_discommon := verified_discrepancy,
                     "report_text": clean_report_output,
                 },
                 indent=4,
@@ -163,12 +163,3 @@ Invoice Text:
                 file_name="auditx_report.json",
                 mime="application/json",
             )
-
-st.sidebar.title("Shopify Integration Status")
-shopify_client_id = st.secrets.get("SHOPIFY_CLIENT_ID", "")
-shopify_client_secret = st.secrets.get("SHOPIFY_CLIENT_SECRET", "")
-
-if shopify_client_id and shopify_client_secret:
-    st.sidebar.success("Shopify App Credentials Connected!")
-else:
-    st.sidebar.warning("Shopify credentials missing from secrets.")

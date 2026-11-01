@@ -76,16 +76,19 @@ Invoice Text:
               model="gemini-3.8-flash", contents=prompt
           )
           break
-        except ServerError:
-          if attempt < max_retries - 1:
-            time.sleep(2 * (attempt + 1))
-            continue
-          else:
-            st.error(
-                "⚠️ Google's AI servers are busy. Please wait 10 seconds and"
-                " try uploading again."
-            )
-            st.stop()
+        except Exception as e:
+    # This catches 429 rate limits, ServerErrors, and quota issues automatically
+    if attempt < max_retries - 1:
+        wait_time = 2 ** (attempt + 1)
+        print(f"Rate limit or server busy ({e}). Retrying in {wait_time} seconds...")
+        time.sleep(wait_time)
+        continue
+    else:
+        st.error(
+            "⚠️ Google's AI servers are busy or rate limit reached. Please wait a moment and try uploading again."
+        )
+        st.stop()
+
 
       ai_output = response.text
 

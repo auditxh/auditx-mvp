@@ -152,7 +152,7 @@ Invoice Text:
             json_file = json.dumps(
                 {
                     "gross_billed": gross_billed,
-                    "verified_discrepancy": verified_discommon := verified_discrepancy,
+                    "verified_discrepancy": verified_discrepancy,
                     "report_text": clean_report_output,
                 },
                 indent=4,

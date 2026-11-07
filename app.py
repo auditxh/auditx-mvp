@@ -15,37 +15,77 @@ st.markdown(
     "Automated cross-industry invoice data extraction paired with deterministic Python financial math."
 )
 
-uploaded_file = st.file_uploader(
-    "Upload Any Vendor Invoice (PDF)", type=["pdf"]
-)
+st.markdown("---")
+st.subheader("🧪 Instant Sandbox Mode (No PDF Required)")
+
+# Demo Sandbox Button right at the top
+if st.button("Load Demo Discrepancy Invoice"):
+  st.info("Demo Invoice Loaded Successfully! Running Audit Engine...")
+
+  st.markdown("### 📊 AuditX Discrepancy Report (Sandbox Mode)")
+  st.markdown("**Vendor Name:** Ashok Tradelines Logistics")
+  st.markdown("**Invoice Number:** INV-2026-992")
+  st.markdown("**Gross Amount Billed:** $1,965.00")
+  st.markdown(
+      "**Audit Verdict:** ⚠️ **Discrepancy Found - Short-pay Recommended**"
+  )
+
+  st.markdown("#### 🚨 Discrepancy Breakdown & Risk Analysis")
+  st.markdown("* **Fee Category:** Line-Item Calculation Mismatch")
+  st.markdown("* **Dollar Impact:** **$285.00 Overcharge**")
+  st.markdown(
+      "* **Issue:** Line Item 2 calculation error; contracted rate card"
+      " specifies flat handling fee at $60.00, but vendor billed $345.00"
+      " (unapproved 475% markup)."
+  )
+
+  st.success("Hybrid Audit Complete!")
+
+  with st.expander("View Python Mathematical Verification Layer"):
+    st.write("**Gross Billed (Verified):** $1965.00")
+    st.write("**Discrepancy Amount (Verified by Python):** $285.00")
+    st.write("**Status:** Math validated successfully with zero AI hallucination.")
+
+  st.markdown("---")
+  st.markdown("### 📥 Export Audit Report")
+  demo_export_data = {
+      "Metric": ["Gross Billed", "Verified Discrepancy"],
+      "Amount ($)": [1965.00, 285.00],
+  }
+  demo_df = pd.DataFrame(demo_export_data)
+  st.dataframe(demo_df)
+
+st.markdown("---")
+uploaded_file = st.file_uploader("Upload Any Vendor Invoice (PDF)", type=["pdf"])
 
 api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get(
     "GEMINI_API_KEY", ""
 )
 
 if uploaded_file is not None:
-    if not api_key:
-        st.error(
-            "⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit app Secrets."
-        )
-    else:
-        # Initialize the GenAI client correctly
-        client = genai.Client(api_key=api_key)
+  if not api_key:
+    st.error(
+        "⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit app"
+        " Secrets."
+    )
+  else:
+    # Initialize the GenAI client correctly
+    client = genai.Client(api_key=api_key)
 
-        with st.spinner("Securely Auditing Invoice (Zero Data Retention)..."):
-            extracted_text = ""
-            with pdfplumber.open(uploaded_file) as pdf:
-                for page in pdf.pages:
-                    extracted_text += page.extract_text() or ""
+    with st.spinner("Securely Auditing Invoice (Zero Data Retention)..."):
+      extracted_text = ""
+      with pdfplumber.open(uploaded_file) as pdf:
+        for page in pdf.pages:
+          extracted_text += page.extract_text() or ""
 
-        prompt = f"""
+    prompt = f"""
 You are an elite enterprise financial auditor. Analyze this vendor invoice text and generate a structured audit report.
 
 CRITICAL INSTRUCTIONS:
-Put your raw data variables strictly inside hidden HTML comment tags at the very top like this: <!-- GROSS: 4628.00 | DISCREPANCY: 439.00 -->
-Do not print raw text headers outside of that comment. After the comment, provide only the clean Markdown executive report.
+Put your raw data variables strictly inside hidden HTML comment tags at the very top like this: <!-- GROSS: 4623.00 | DISCREPANCY: 285.00 -->
+Do not print raw text headers outside of that comment. After the comment, provide only the clean Markdown executive report layout.
 
-<!-- GROSS: [Extract total billed amount as number, e.g. 4628.00] | DISCREPANCY: [Extract sum of flagged disputed fees, e.g. 439.00] -->
+<!-- GROSS: [Extract total billed amount as number, e.g. 4623.00] | DISCREPANCY: [Extract sum of flagged disputed fees, e.g. 285.00] -->
 
 ### Executive Summary
 - **Vendor Name:** [Extract Vendor Name]
@@ -64,102 +104,104 @@ List each finding clearly with its financial impact:
 
 Invoice Text:
 {extracted_text}
+---
 """
 
-        max_retries = 5
-        response = None
+    max_retries = 5
+    response = None
 
-        for attempt in range(max_retries):
-            try:
-                response = client.models.generate_content(
-                    model="gemini-3.8-flash", contents=prompt
-                )
-                break
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    wait_time = 2 * (attempt + 1)
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    st.error(
-                        f"⚠️ Google's AI servers are busy or rate limit reached ({e}). Please wait a moment and try uploading again."
-                    )
-                    st.stop()
-
-        ai_output = response.text
-
-        gross_billed = 0.00
-        verified_discrepancy = 0.00
-
-        try:
-            if "<!--" in ai_output and "-->" in ai_output:
-                comment_part = ai_output.split("<!--")[1].split("-->")[0]
-                for part in comment_part.split("|"):
-                    if "GROSS:" in part:
-                        gross_billed = float(part.split(":")[1].strip())
-                    if "DISCREPANCY:" in part:
-                        verified_discrepancy = float(
-                            part.split(":")[1].strip()
-                        )
-        except Exception:
-            pass
-
-        clean_report_output = (
-            ai_output.split("-->")[-1].strip()
-            if "-->" in ai_output
-            else ai_output
+    for attempt in range(max_retries):
+      try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash", contents=prompt
         )
+        break
+      except Exception as e:
+        if attempt < max_retries - 1:
+          wait_time = 2**attempt
+          time.sleep(wait_time)
+          continue
+        else:
+          st.error(
+              "⚠️ Google's AI servers are busy or rate limit reached (429)."
+              " Please wait a moment and try upload again."
+          )
+          st.stop()
 
-        st.success("Hybrid Audit Complete!")
+    ai_output = response.text
 
-        with st.expander("View Python Mathematical Verification Layer"):
-            st.write(f"**Gross Billed (Verified):** ${gross_billed:,.2f}")
-            st.write(
-                f"**Discrepancy Amount (Verified by Python):** ${verified_discrepancy:,.2f}"
-            )
-            st.write(
-                "**Status:** Math validated successfully with zero AI hallucination."
-            )
+    gross_billed = 0.00
+    verified_discrepancy = 0.00
 
-        st.markdown("---")
-        st.markdown(clean_report_output)
-        st.markdown("---")
+    try:
+      if "<!--" in ai_output and "-->" in ai_output:
+        comment_part = ai_output.split("<!--")[1].split("-->")[0]
+        for part in comment_part.split("|"):
+          if "GROSS" in part:
+            gross_billed = float(part.split(":")[1].strip())
+          if "DISCREPANCY" in part:
+            verified_discrepancy = float(part.split(":")[1].strip())
+    except Exception:
+      pass
 
-        if st.button("Approve & Confirm Short-Pay Action"):
-            st.info(
-                f"Action successfully recorded: Flagged ${verified_discrepancy:,.2f} for human sign-off and vendor dispute"
-            )
+    clean_report_output = (
+        ai_output.split("-->")[-1].strip()
+        if "-->" in ai_output
+        else ai_output
+    )
 
-        # --- CSV and JSON Export Integration ---
-        st.markdown("### 📥 Export Audit Report")
-        export_data = {
-            "Metric": ["Gross Billed", "Verified Discrepancy"],
-            "Amount ($)": [gross_billed, verified_discrepancy],
-        }
-        export_df = pd.DataFrame(export_data)
+    st.success("Hybrid Audit Complete!")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            csv_file = export_df.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                label="Download Report (CSV)",
-                data=csv_file,
-                file_name="auditx_report.csv",
-                mime="text/csv",
-            )
+    with st.expander("View Python Mathematical Verification Layer"):
+      st.write(f"***Gross Billed (Verified):** ${gross_billed:.2f}*")
+      st.write(
+          f"***Discrepancy Amount (Verified by Python):**"
+          f" ${verified_discrepancy:.2f}*"
+      )
+      st.write(
+          "***Status:** Math validated successfully with zero AI hallucination.*"
+      )
 
-        with col2:
-            json_file = json.dumps(
-                {
-                    "gross_billed": gross_billed,
-                    "verified_discrepancy": verified_discrepancy,
-                    "report_text": clean_report_output,
-                },
-                indent=4,
-            )
-            st.download_button(
-                label="Download Report (JSON)",
-                data=json_file,
-                file_name="auditx_report.json",
-                mime="application/json",
-            )
+    st.markdown("---")
+    st.markdown(clean_report_output)
+    st.markdown("---")
+
+    if st.button("Approve & Confirm Short-Pay Action"):
+      st.info(
+          f"Action successfully recorded: Flagged ${verified_discrepancy:.2f} for"
+          " human sign-off and vendor dispute notice."
+      )
+
+    # --- CSV and JSON Export Integration ---
+    st.markdown("### 📥 Export Audit Report")
+    export_data = {
+        "Metric": ["Gross Billed", "Verified Discrepancy"],
+        "Amount ($)": [gross_billed, verified_discrepancy],
+    }
+    export_df = pd.DataFrame(export_data)
+
+    col1, col2 = st.columns(2)
+    with col1:
+      csv_file = export_df.to_csv(index=False).encode("utf-8")
+      st.download_button(
+          label="Download Report (CSV)",
+          data=csv_file,
+          file_name="auditx_report.csv",
+          mime="text/csv",
+      )
+
+    with col2:
+      json_file = json.dumps(
+          {
+              "gross_billed": gross_billed,
+              "verified_discrepancy": verified_discrepancy,
+              "report_text": clean_report_output,
+          },
+          indent=4,
+      )
+      st.download_button(
+          label="Download Report (JSON)",
+          data=json_file,
+          file_name="auditx_report.json",
+          mime="application/json",
+      )

@@ -18,31 +18,48 @@ st.markdown(
 st.markdown("---")
 st.subheader("🧪 Instant Sandbox Mode (No PDF Required)")
 
-# Demo Sandbox Button right at the top
+# Demo Sandbox Button with a realistic company invoice and embedded discrepancy
 if st.button("Load Demo Discrepancy Invoice"):
-  st.info("Demo Invoice Loaded Successfully! Running Audit Engine...")
+  st.info(
+      "Demo Invoice Loaded: Global Freight & Logistics Corp (INV-2026-884)"
+  )
+
+  # Displaying a realistic enterprise invoice preview
+  with st.expander("📄 View Sample Loaded Enterprise Invoice (Raw Text)", expanded=True):
+    st.text("""
+    VENDOR: Global Freight & Logistics Corp
+    INVOICE NO: INV-2026-884
+    DATE: Nov 6, 2026
+    BILL TO: Apex Supply Chain Partners
+    
+    Line Item 1: Ocean Freight Corridor (Port Klang to Cochin) - 12 TEU @ $1,200.00 = $14,400.00
+    Line Item 2: Terminal Handling & Port Security Surcharge - Flat Rate = $1,850.00
+    Line Item 3: Automated Documentation & Customs Filing Fee = $350.00
+    
+    TOTAL GROSS BILLED: $16,600.00
+    """)
 
   st.markdown("### 📊 AuditX Discrepancy Report (Sandbox Mode)")
-  st.markdown("**Vendor Name:** Ashok Tradelines Logistics")
-  st.markdown("**Invoice Number:** INV-2026-992")
-  st.markdown("**Gross Amount Billed:** $1,965.00")
+  st.markdown("**Vendor Name:** Global Freight & Logistics Corp")
+  st.markdown("**Invoice Number:** INV-2026-884")
+  st.markdown("**Gross Amount Billed:** $16,600.00")
   st.markdown(
       "**Audit Verdict:** ⚠️ **Discrepancy Found - Short-pay Recommended**"
   )
 
   st.markdown("#### 🚨 Discrepancy Breakdown & Risk Analysis")
-  st.markdown("* **Fee Category:** Line-Item Calculation Mismatch")
+  st.markdown("* **Fee Category:** Terminal Handling Fee Surcharge Variance")
   st.markdown("* **Dollar Impact:** **$285.00 Overcharge**")
   st.markdown(
-      "* **Issue:** Line Item 2 calculation error; contracted rate card"
-      " specifies flat handling fee at $60.00, but vendor billed $345.00"
-      " (unapproved 475% markup)."
+      "* **Issue:** Line Item 2 calculation error; Master Service Agreement (MSA"
+      " #402) specifies a fixed terminal handling cap of $1,565.00, but vendor"
+      " billed $1,850.00 (unapproved markup)."
   )
 
   st.success("Hybrid Audit Complete!")
 
   with st.expander("View Python Mathematical Verification Layer"):
-    st.write("**Gross Billed (Verified):** $1965.00")
+    st.write("**Gross Billed (Verified):** $16600.00")
     st.write("**Discrepancy Amount (Verified by Python):** $285.00")
     st.write("**Status:** Math validated successfully with zero AI hallucination.")
 
@@ -50,7 +67,7 @@ if st.button("Load Demo Discrepancy Invoice"):
   st.markdown("### 📥 Export Audit Report")
   demo_export_data = {
       "Metric": ["Gross Billed", "Verified Discrepancy"],
-      "Amount ($)": [1965.00, 285.00],
+      "Amount ($)": [16600.00, 285.00],
   }
   demo_df = pd.DataFrame(demo_export_data)
   st.dataframe(demo_df)
@@ -69,7 +86,6 @@ if uploaded_file is not None:
         " Secrets."
     )
   else:
-    # Initialize the GenAI client correctly
     client = genai.Client(api_key=api_key)
 
     with st.spinner("Securely Auditing Invoice (Zero Data Retention)..."):

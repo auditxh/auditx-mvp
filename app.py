@@ -6,7 +6,7 @@ import os
 # --- Page Configuration ---
 st.set_page_config(
     page_title="AuditX | AI Invoice & Compliance Engine",
-    page_icon="🛡️",
+    page_icon="📄",
     layout="centered"
 )
 
@@ -22,7 +22,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- Header Section ---
-st.title("🛡️ AuditX: Hybrid AI & Compliance Audit Engine")
+st.title("📄 AuditX: Hybrid AI & Compliance Audit Engine")
 st.markdown("Automated cross-industry invoice data extraction paired with deterministic Python financial math to eliminate billing leakage.")
 
 st.divider()
@@ -129,6 +129,6 @@ if uploaded_file is not None:
 st.markdown("""
 <div class="cta-box">
     <h3>Want to run a bulk audit on your historical vendor invoices?</h3>
-    <p>Contact us at <b>[Your Email / LinkedIn Profile]</b> for a free 10-invoice trial run and custom contract rule integration.</p>
+    <p>Contact us at <b>auditx.logistics@gmail.com</b> for a free 10-invoice trial run and custom contract rule integration.</p>
 </div>
 """, unsafe_allow_html=True)

@@ -135,7 +135,7 @@ Invoice Text:
             with st.spinner("Analyzing invoice with Gemini AI..."):
                 try:
                     response = client.models.generate_content(
-                        model="gemini-2.0-flash", contents=prompt
+                        model="gemini-3.8-flash", contents=prompt
                     )
                     ai_output = response.text
                 except Exception as e:

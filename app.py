@@ -27,7 +27,6 @@ if "use_sandbox" not in st.session_state:
 if st.button("Load Demo Discrepancy Invoice"):
     st.session_state.use_sandbox = True
 
-# Mock extracted text for the sandbox demo
 SANDBOX_INVOICE_TEXT = """
 INVOICE # GLF-8849201
 VENDOR: Global Freight Logistics Corp
@@ -44,7 +43,7 @@ uploaded_file = st.file_uploader(
     "Upload Any Vendor Invoice (PDF)", type=["pdf"]
 )
 
-# 🔒 Styled Secure & Private Notice Box
+# 🔒 Secure & Private Notice Box
 st.markdown(
     """
     <div style="padding: 10px; border-radius: 5px; background-color: rgba(0, 200, 100, 0.1); border: 1px solid rgba(0, 200, 100, 0.3); margin-bottom: 15px;">
@@ -59,7 +58,7 @@ api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get(
     "GEMINI_API_KEY", ""
 )
 
-# Determine data source: Sandbox or Real Uploaded File
+# Extract text based on user action (Sandbox vs Upload)
 active_text = ""
 is_sandbox = False
 
@@ -69,19 +68,19 @@ if st.session_state.use_sandbox and uploaded_file is None:
     st.info("⚡ Running in Sandbox Mode with sample freight invoice data.")
 elif uploaded_file is not None:
     st.session_state.use_sandbox = False
-    with st.spinner("Securely Auditing Invoice (Zero Data Retention)..."):
-        try:
-            with pdfplumber.open(uploaded_file) as pdf:
-                for page in pdf.pages:
-                    active_text += page.extract_text() or ""
-        except Exception as e:
-            st.error(f"Error reading PDF file: {e}")
+    try:
+        with pdfplumber.open(uploaded_file) as pdf:
+            for page in pdf.pages:
+                extracted = page.extract_text()
+                if extracted:
+                    active_text += extracted + "\n"
+    except Exception as e:
+        st.error(f"Error reading PDF file: {e}")
 
+# Run audit only when active text is available
 if active_text:
     if not api_key and not is_sandbox:
-        st.error(
-            "⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit app Secrets."
-        )
+        st.error("⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit app Secrets.")
     else:
         ai_output = ""
         
@@ -99,11 +98,11 @@ if active_text:
 - **Liftgate Service Fee:** **$125.00**
   - **Issue:** Billed for liftgate service which is explicitly waived under master contract terms.
 - **Inside Delivery Rate Variance:** **$180.00**
-  - **Issue:** Billed $188.00 against an agreed fixed flat rate of $125.00 (variance of $63.00) plus unauthorized administrative add-on fees.
+  - **Issue:** Billed $188.00 against an agreed fixed flat rate of $125.00 (variance of $63.00).
 
 ### Recommended Auditor Action
 - **Short-pay / Hold Amount:** **$431.00**
-- **Required Vendor Action:** Issue a revised invoice removing the waived liftgate fee, capping fuel at 18%, and adjusting inside delivery back to contract terms.
+- **Required Vendor Action:** Issue a revised invoice removing the waived liftgate fee and capping fuel at 18%.
 """
         else:
             client = genai.Client(api_key=api_key)
@@ -135,27 +134,15 @@ Invoice Text:
 {active_text}
 """
 
-            max_retries = 5
-            response = None
-
-            for attempt in range(max_retries):
+            with st.spinner("Analyzing invoice with Gemini AI..."):
                 try:
                     response = client.models.generate_content(
                         model="gemini-3.8-flash", contents=prompt
                     )
-                    break
+                    ai_output = response.text
                 except Exception as e:
-                    if attempt < max_retries - 1:
-                        wait_time = 2 * (attempt + 1)
-                        time.sleep(wait_time)
-                        continue
-                    else:
-                        st.error(
-                            f"⚠️ Google's AI servers are busy or rate limit reached ({e}). Please wait a moment and try uploading again."
-                        )
-                        st.stop()
-
-            ai_output = response.text
+                    st.error(f"⚠️ Error calling Gemini AI: {e}")
+                    st.stop()
 
         gross_billed = 0.00
         verified_discrepancy = 0.00
@@ -167,9 +154,7 @@ Invoice Text:
                     if "GROSS:" in part:
                         gross_billed = float(part.split(":")[1].strip())
                     if "DISCREPANCY:" in part:
-                        verified_discrepancy = float(
-                            part.split(":")[1].strip()
-                        )
+                        verified_discrepancy = float(part.split(":")[1].strip())
         except Exception:
             pass
 
@@ -183,52 +168,35 @@ Invoice Text:
 
         with st.expander("View Python Mathematical Verification Layer"):
             st.write(f"**Gross Billed (Verified):** ${gross_billed:,.2f}")
-            st.write(
-                f"**Discrepancy Amount (Verified by Python):** ${verified_discrepancy:,.2f}"
-            )
-            st.write(
-                "**Status:** Math validated successfully with zero AI hallucination."
-            )
+            st.write(f"**Discrepancy Amount (Verified by Python):** ${verified_discrepancy:,.2f}")
+            st.write("**Status:** Math validated successfully with zero AI hallucination.")
 
         st.markdown("---")
         st.markdown(clean_report_output)
         st.markdown("---")
 
         if st.button("Approve & Confirm Short-Pay Action"):
-            st.info(
-                f"Action successfully recorded: Flagged ${verified_discrepancy:,.2f} for human sign-off and vendor dispute"
-            )
+            st.info(f"Action successfully recorded: Flagged ${verified_discrepancy:,.2f} for human sign-off and vendor dispute")
 
-        # --- CSV and JSON Export Integration ---
+        # --- Export Section ---
         st.markdown("### 📥 Export Audit Report")
-        export_data = {
+        export_df = pd.DataFrame({
             "Metric": ["Gross Billed", "Verified Discrepancy"],
             "Amount USD": [gross_billed, verified_discrepancy],
-        }
-        export_df = pd.DataFrame(export_data)
+        })
 
         col1, col2 = st.columns(2)
         with col1:
-            csv_file = export_df.to_csv(index=False).encode("utf-8")
             st.download_button(
                 label="Download Report (CSV)",
-                data=csv_file,
+                data=export_df.to_csv(index=False).encode("utf-8"),
                 file_name="auditx_report.csv",
-                mime="text/csv",
+                mime="test/csv",
             )
-
         with col2:
-            json_file = json.dumps(
-                {
-                    "gross_billed": gross_billed,
-                    "verified_discrepancy": verified_discrepancy,
-                    "report_text": clean_report_output,
-                },
-                indent=4,
-            )
             st.download_button(
                 label="Download Report (JSON)",
-                data=json_file,
+                data=json.dumps({"gross_billed": gross_billed, "verified_discrepancy": verified_discrepancy, "report_text": clean_report_output}, indent=4),
                 file_name="auditx_report.json",
                 mime="application/json",
             )

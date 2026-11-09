@@ -43,7 +43,7 @@ uploaded_file = st.file_uploader(
     "Upload Any Vendor Invoice (PDF)", type=["pdf"]
 )
 
-# 🔒 Secure & Private Notice Box
+# 🔒 Secure & Private Notice Box (Green styling)
 st.markdown(
     """
     <div style="padding: 10px; border-radius: 5px; background-color: rgba(0, 200, 100, 0.1); border: 1px solid rgba(0, 200, 100, 0.3); margin-bottom: 15px;">
@@ -58,7 +58,6 @@ api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get(
     "GEMINI_API_KEY", ""
 )
 
-# Extract text based on user action (Sandbox vs Upload)
 active_text = ""
 is_sandbox = False
 
@@ -77,7 +76,6 @@ elif uploaded_file is not None:
     except Exception as e:
         st.error(f"Error reading PDF file: {e}")
 
-# Run audit only when active text is available
 if active_text:
     if not api_key and not is_sandbox:
         st.error("⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit app Secrets.")
@@ -98,7 +96,7 @@ if active_text:
 - **Liftgate Service Fee:** **$125.00**
   - **Issue:** Billed for liftgate service which is explicitly waived under master contract terms.
 - **Inside Delivery Rate Variance:** **$180.00**
-  - **Issue:** Billed $188.00 against an agreed fixed flat rate of $125.00 (variance of $63.00).
+  - **Issue:** Billed $188.00 against an agreed fixed flat rate of $125.00.
 
 ### Recommended Auditor Action
 - **Short-pay / Hold Amount:** **$431.00**
@@ -137,7 +135,7 @@ Invoice Text:
             with st.spinner("Analyzing invoice with Gemini AI..."):
                 try:
                     response = client.models.generate_content(
-                        model="gemini-3.8-flash", contents=prompt
+                        model="gemini-2.0-flash", contents=prompt
                     )
                     ai_output = response.text
                 except Exception as e:
@@ -191,7 +189,7 @@ Invoice Text:
                 label="Download Report (CSV)",
                 data=export_df.to_csv(index=False).encode("utf-8"),
                 file_name="auditx_report.csv",
-                mime="test/csv",
+                mime="text/csv",
             )
         with col2:
             st.download_button(

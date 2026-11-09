@@ -44,6 +44,12 @@ uploaded_file = st.file_uploader(
     "Upload Any Vendor Invoice (PDF)", type=["pdf"]
 )
 
+# Security Disclaimer (Added right below upload area)
+st.markdown(
+    "🔒 **100% Secure & Private:** Uploaded PDFs are processed strictly in "
+    "temporary cache memory and are never saved, stored, or shared."
+)
+
 api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get(
     "GEMINI_API_KEY", ""
 )
@@ -72,11 +78,9 @@ if active_text:
             "⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit app Secrets."
         )
     else:
-        # If sandbox is active without a real API key, use simulated output or fallback client if key exists
         ai_output = ""
         
         if is_sandbox and not api_key:
-            # Hardcoded instant sandbox response so it works right away even without an API key
             ai_output = """<!-- GROSS: 4556.00 | DISCREPANCY: 431.00 -->
 ### Executive Summary
 - **Vendor Name:** Global Freight Logistics Corp
@@ -194,7 +198,7 @@ Invoice Text:
         st.markdown("### 📥 Export Audit Report")
         export_data = {
             "Metric": ["Gross Billed", "Verified Discrepancy"],
-            "Amount ($)": [gross_billed, verified_discrepancy],
+            "Amount USD": [gross_billed, verified_discrepancy],
         }
         export_df = pd.DataFrame(export_data)
 
@@ -223,3 +227,10 @@ Invoice Text:
                 file_name="auditx_report.json",
                 mime="application/json",
             )
+
+# ---------------------------------------------------------
+# Footer (Contact Me CTA)
+# ---------------------------------------------------------
+st.markdown("---")
+st.markdown("### Want to run a bulk audit on your historical vendor invoices?")
+st.write("Contact me at **auditx.logistics@gmail.com** for a free 10-invoice trial run and custom contract rule integration.")

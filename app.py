@@ -44,10 +44,15 @@ uploaded_file = st.file_uploader(
     "Upload Any Vendor Invoice (PDF)", type=["pdf"]
 )
 
-# Security Disclaimer (Added right below upload area)
+# 🔒 Styled Secure & Private Notice Box
 st.markdown(
-    "🔒 **100% Secure & Private:** Uploaded PDFs are processed strictly in "
-    "temporary cache memory and are never saved, stored, or shared."
+    """
+    <div style="padding: 10px; border-radius: 5px; background-color: rgba(0, 200, 100, 0.1); border: 1px solid rgba(0, 200, 100, 0.3); margin-bottom: 15px;">
+        <span style="font-weight: bold; color: #2e7d32;">🔒 100% Secure & Private:</span> 
+        <span style="color: inherit;">Uploaded PDFs are processed strictly in temporary cache memory and are never saved, stored, or shared.</span>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get(
@@ -136,7 +141,7 @@ Invoice Text:
             for attempt in range(max_retries):
                 try:
                     response = client.models.generate_content(
-                        model="gemini-3.8-flash", contents=prompt
+                        model="gemini-2.0-flash", contents=prompt
                     )
                     break
                 except Exception as e:

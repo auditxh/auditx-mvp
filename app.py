@@ -8,19 +8,9 @@ from google.genai.errors import ServerError
 # Page Config
 st.set_page_config(page_title="AuditX: AI Invoice Audit Engine", page_icon="📄", layout="centered")
 
-# --- SIDEBAR CONFIGURATION (Sandbox, Security & Support Email) ---
-st.sidebar.title("🛡️ AuditX System Status")
-st.sidebar.info("🧪 **Environment:** Live Sandbox Mode")
-st.sidebar.success("🔒 **Security:** 100% Safe & Encrypted")
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Support Email:**")
-st.sidebar.code("auditx.logistics@gmail.com")
-st.sidebar.markdown("---")
-st.sidebar.caption("AuditX Enterprise B2B Compliance Engine v3.2")
-
 # UI Header
-st.title("📄 AuditX: Hybrid AI & Compliance Audit Engine")
-st.markdown("Automated cross-industry invoice data extraction paired with deterministic Python financial math.")
+st.title("🧾 AuditX: Hybrid AI & Compliance Audit Engine")
+st.markdown("Automated cross-industry invoice data extraction paired with deterministic Python financial math to eliminate billing leakage.")
 
 # --- DEMO INVOICE PRE-SET DATA ---
 SAMPLE_INVOICE_TEXT = """
@@ -42,8 +32,12 @@ TOTAL AMOUNT BILLED: $1,965.00
 if "use_demo" not in st.session_state:
     st.session_state.use_demo = False
 
-st.markdown("### ✏️ Instant Sandbox Mode (No PDF Required)")
-if st.button("Load Demo Discrepancy Invoice"):
+# --- 1. INSTANT SANDBOX MODE SECTION ---
+st.markdown("---")
+st.markdown("### 📝 Instant Sandbox Mode (No PDF Required)")
+st.markdown("Test our engine instantly using a pre-loaded sample enterprise freight invoice to see how automated anomaly detection works in seconds.")
+
+if st.button("🚀 Load Demo Discrepancy Invoice"):
     st.session_state.use_demo = True
     st.success("Demo Invoice Loaded Successfully! Running Audit Engine...")
 
@@ -58,9 +52,15 @@ if st.session_state.use_demo:
     extracted_text = SAMPLE_INVOICE_TEXT
     is_running = True
 
-# --- REAL-WORLD PDF INVOICE UPLOADER ---
+# --- 2. UPLOAD CUSTOM VENDOR INVOICE SECTION ---
 st.markdown("---")
-uploaded_file = st.file_uploader("Upload Any Vendor Invoice (PDF)", type=["pdf"])
+st.markdown("### 📁 Upload Custom Vendor Invoice")
+
+# 100% Safe & Secure Badge Box
+st.success("🔒 **100% Secure & Private:** Uploaded PDFs are processed strictly in temporary cache memory and are never saved, stored, or shared.")
+
+st.markdown("Upload a vendor PDF invoice for real time validation")
+uploaded_file = st.file_uploader("Upload", type=["pdf"], label_visibility="collapsed")
 
 if uploaded_file is not None:
     st.session_state.use_demo = False
@@ -121,7 +121,7 @@ Invoice Text:
             for attempt in range(max_retries):
                 try:
                     response = client.models.generate_content(
-                        model='gemini-1.5-flash',
+                        model='gemini-3.8-flash',
                         contents=prompt
                     )
                     break  # Success! Exit loop.
@@ -179,3 +179,10 @@ Invoice Text:
             # Human Review Safeguard Button
             if st.button("Approve & Confirm Short-Pay Action"):
                 st.info(f"Action successfully recorded: Flagged ${verified_discrepancy:,.2f} for human sign-off and vendor dispute notice.")
+
+# --- 3. BULK AUDIT CONTACT BOX ---
+st.markdown("---")
+st.info("""
+### Want to run a bulk audit on your historical vendor invoices?
+Contact us at **auditx.logistics@gmail.com** for a free 10-invoice trial run and custom contract rule integration.
+""")

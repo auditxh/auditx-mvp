@@ -8,8 +8,18 @@ from google.genai.errors import ServerError
 # Page Config
 st.set_page_config(page_title="AuditX: AI Invoice Audit Engine", page_icon="📄", layout="centered")
 
+# --- SIDEBAR CONFIGURATION (Sandbox, Security & Support Email) ---
+st.sidebar.title("🛡️ AuditX System Status")
+st.sidebar.info("🧪 **Environment:** Live Sandbox Mode")
+st.sidebar.success("🔒 **Security:** 100% Safe & Encrypted")
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Support Email:**")
+st.sidebar.code("auditx.logistics@gmail.com")
+st.sidebar.markdown("---")
+st.sidebar.caption("AuditX Enterprise B2B Compliance Engine v3.2")
+
 # UI Header
-st.title("AuditX: Hybrid AI & Compliance Audit Engine")
+st.title("📄 AuditX: Hybrid AI & Compliance Audit Engine")
 st.markdown("Automated cross-industry invoice data extraction paired with deterministic Python financial math.")
 
 # --- DEMO INVOICE PRE-SET DATA ---

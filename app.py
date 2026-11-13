@@ -9,7 +9,7 @@ from google.genai.errors import ServerError
 st.set_page_config(page_title="AuditX: AI Invoice Audit Engine", page_icon="📄", layout="centered")
 
 # UI Header
-st.title("🧾 AuditX: Hybrid AI & Compliance Audit Engine")
+st.title("🛡️ AuditX: Hybrid AI & Compliance Audit Engine")
 st.markdown("Automated cross-industry invoice data extraction paired with deterministic Python financial math to eliminate billing leakage.")
 
 # --- DEMO INVOICE PRE-SET DATA ---
@@ -39,18 +39,9 @@ st.markdown("Test our engine instantly using a pre-loaded sample enterprise frei
 
 if st.button("🚀 Load Demo Discrepancy Invoice"):
     st.session_state.use_demo = True
-    st.success("Demo Invoice Loaded Successfully! Running Audit Engine...")
 
 # Initialize GenAI Client securely using Streamlit Secrets or Environment Variable
 api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", "")
-
-# Determine if we are processing demo text or an uploaded real-world PDF file
-extracted_text = ""
-is_running = False
-
-if st.session_state.use_demo:
-    extracted_text = SAMPLE_INVOICE_TEXT
-    is_running = True
 
 # --- 2. UPLOAD CUSTOM VENDOR INVOICE SECTION ---
 st.markdown("---")
@@ -64,6 +55,13 @@ uploaded_file = st.file_uploader("Upload", type=["pdf"], label_visibility="colla
 
 if uploaded_file is not None:
     st.session_state.use_demo = False
+
+# Determine text source cleanly without blocking execution
+extracted_text = ""
+
+if st.session_state.use_demo:
+    extracted_text = SAMPLE_INVOICE_TEXT
+elif uploaded_file is not None:
     with st.spinner("Extracting text from uploaded PDF..."):
         try:
             with pdfplumber.open(uploaded_file) as pdf:
@@ -71,12 +69,11 @@ if uploaded_file is not None:
                     extracted_text += page.extract_text() or ""
             if not extracted_text.strip():
                 st.warning("⚠️ Could not extract text. Ensure it contains selectable text.")
-            else:
-                is_running = True
         except Exception as e:
             st.error(f"Error reading PDF file: {e}")
 
-if is_running and extracted_text.strip():
+# Run Audit if text is available
+if extracted_text.strip():
     if not api_key:
         st.error("⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit App Secrets.")
     else:
@@ -121,7 +118,7 @@ Invoice Text:
             for attempt in range(max_retries):
                 try:
                     response = client.models.generate_content(
-                        model='gemini-3.8-flash',
+                        model='gemini-1.5-flash',
                         contents=prompt
                     )
                     break  # Success! Exit loop.

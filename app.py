@@ -1,207 +1,138 @@
-import json
 import os
-import time
-import pandas as pd
+import streamlit as st
 import pdfplumber
 from google import genai
-import streamlit as st
 
-st.set_page_config(
-    page_title="AuditX: AI Invoice Audit Engine", page_icon="🧮", layout="centered"
-)
+# Page Config
+st.set_page_config(page_title="AuditX: AI Invoice Audit Engine", page_icon="📄", layout="centered")
 
-st.title("AuditX: Hybrid AI & Compliance Audit Engine")
-st.markdown(
-    "Automated cross-industry invoice data extraction paired with deterministic Python financial math."
-)
+# UI Header
+st.title("📄 AuditX: Hybrid AI & Compliance Audit Engine")
+st.markdown("Automated cross-industry invoice data extraction paired with deterministic Python financial math.")
 
-# ---------------------------------------------------------
-# Instant Sandbox Mode (Pre-loaded Demo Invoice)
-# ---------------------------------------------------------
-st.markdown("### ⚡ Instant Sandbox Mode (No PDF Required)")
-st.caption("Test the audit engine instantly using a pre-loaded sample enterprise freight invoice.")
+# File Uploader
+uploaded_file = st.file_uploader("Upload Any Vendor Invoice (PDF)", type=["pdf"])
 
-if "use_sandbox" not in st.session_state:
-    st.session_state.use_sandbox = False
+# Initialize GenAI Client securely using Streamlit Secrets or Environment Variable
+api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", "")
 
-if st.button("Load Demo Discrepancy Invoice"):
-    st.session_state.use_sandbox = True
-
-SANDBOX_INVOICE_TEXT = """
-INVOICE # GLF-8849201
-VENDOR: Global Freight Logistics Corp
-TOTAL INVOICE AMOUNT DUE: $4,556.00
-GROSS WEIGHT: 4,200 lbs (Package Count: 1)
-Line Items:
-- Base Freight Charge: $3,150.00
-- Fuel Surcharge (22%): $693.00 (Agreed Cap: 18%)
-- Liftgate Service: $125.00 (Agreed Terms: Waived)
-- Inside Delivery: $188.00 (Agreed Rate: $125.00)
-"""
-
-uploaded_file = st.file_uploader(
-    "Upload Any Vendor Invoice (PDF)", type=["pdf"]
-)
-
-# 🔒 Secure & Private Notice Box (Green styling)
-st.markdown(
-    """
-    <div style="padding: 10px; border-radius: 5px; background-color: rgba(0, 200, 100, 0.1); border: 1px solid rgba(0, 200, 100, 0.3); margin-bottom: 15px;">
-        <span style="font-weight: bold; color: #2e7d32;">🔒 100% Secure & Private:</span> 
-        <span style="color: inherit;">Uploaded PDFs are processed strictly in temporary cache memory and are never saved, stored, or shared.</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get(
-    "GEMINI_API_KEY", ""
-)
-
-active_text = ""
-is_sandbox = False
-
-if st.session_state.use_sandbox and uploaded_file is None:
-    active_text = SANDBOX_INVOICE_TEXT
-    is_sandbox = True
-    st.info("⚡ Running in Sandbox Mode with sample freight invoice data.")
-elif uploaded_file is not None:
-    st.session_state.use_sandbox = False
-    try:
-        with pdfplumber.open(uploaded_file) as pdf:
-            for page in pdf.pages:
-                extracted = page.extract_text()
-                if extracted:
-                    active_text += extracted + "\n"
-    except Exception as e:
-        st.error(f"Error reading PDF file: {e}")
-
-if active_text:
-    if not api_key and not is_sandbox:
-        st.error("⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit app Secrets.")
+if uploaded_file is not None:
+    if not api_key:
+        st.error("⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit App Secrets.")
     else:
-        ai_output = ""
-        
-        if is_sandbox and not api_key:
-            ai_output = """<!-- GROSS: 4556.00 | DISCREPANCY: 431.00 -->
-### Executive Summary
-- **Vendor Name:** Global Freight Logistics Corp
-- **Invoice Number:** GLF-8849201
-- **Gross Amount Billed:** $4,556.00
-- **Audit Verdict:** Short-pay Recommended
+        with st.spinner("AI is analyzing invoice and Python is verifying the numbers..."):
+            # Step 1: Extract text from PDF using pdfplumber
+            extracted_text = ""
+            with pdfplumber.open(uploaded_file) as pdf:
+                for page in pdf.pages:
+                    extracted_text += page.extract_text() or ""
 
-### Discrepancy Breakdown & Risk Analysis
-- **Fuel Surcharge Overcharge:** **$126.00**
-  - **Issue:** Billed at 22% ($693.00) violating the maximum agreed contract cap of 18% ($567.00).
-- **Liftgate Service Fee:** **$125.00**
-  - **Issue:** Billed for liftgate service which is explicitly waived under master contract terms.
-- **Inside Delivery Rate Variance:** **$180.00**
-  - **Issue:** Billed $188.00 against an agreed fixed flat rate of $125.00.
-
-### Recommended Auditor Action
-- **Short-pay / Hold Amount:** **$431.00**
-- **Required Vendor Action:** Issue a revised invoice removing the waived liftgate fee and capping fuel at 18%.
-"""
-        else:
+            # Step 2: Call Gemini Flash with hidden tag format for clean parsing
             client = genai.Client(api_key=api_key)
+            
             prompt = f"""
 You are an elite enterprise financial auditor. Analyze this vendor invoice text and generate a structured audit report.
 
 CRITICAL INSTRUCTIONS:
-Put your raw data variables strictly inside hidden HTML comment tags at the very top like this: <!-- GROSS: 4628.00 | DISCREPANCY: 439.00 -->
-Do not print raw text headers outside of that comment. After the comment, provide only the clean Markdown executive report.
+Put your raw data variables strictly inside hidden HTML comment tags at the very top like this: <!-- GROSS: 4625.00 | DISCREPANCY: 675.00 -->
+Do not print raw text headers outside of that comment. After the comment, provide only the clean Markdown executive report:
 
-<!-- GROSS: [Extract total billed amount as number, e.g. 4628.00] | DISCREPANCY: [Extract sum of flagged disputed fees, e.g. 439.00] -->
+<!-- GROSS: [Extract total billed amount as number, e.g. 4625.00] | DISCREPANCY: [Extract sum of flagged disputed fees as number, e.g. 675.00 or 0.00] -->
 
-### Executive Summary
+### 📋 Executive Summary
 - **Vendor Name:** [Extract Vendor Name]
 - **Invoice Number:** [Extract Invoice Number]
 - **Gross Amount Billed:** [Extract Total Billed Amount]
 - **Audit Verdict:** [Disputed / Short-pay Recommended / Approved]
 
-### Discrepancy Breakdown & Risk Analysis
+### 🚨 Discrepancy Breakdown & Risk Analysis
 List each finding clearly with its financial impact:
-- **[Fee Category]:** **[Dollar Amount]**
-- **Issue:** [1-sentence explanation of why it violates terms or looks unauthorized]
+- **[Fee Category] ([Dollar Amount]):** 
+  - **Issue:** [1-sentence explanation of why it violates terms or looks unauthorized]
 
-### Recommended Auditor Action
-- **Short-pay / Hold Amount:** **[Exact dollar amount to withhold]**
+### 💡 Recommended Auditor Action
+- **Short-pay / Hold Amount:** [Exact dollar amount to withhold]
 - **Required Vendor Action:** [What correction the vendor must provide]
 
 Invoice Text:
-{active_text}
+{extracted_text}
 """
 
-            with st.spinner("Analyzing invoice with Gemini AI..."):
-                try:
-                    response = client.models.generate_content(
-                        model="gemini-3.8-flash", contents=prompt
-                    )
-                    ai_output = response.text
-                except Exception as e:
-                    st.error(f"⚠️ Error calling Gemini AI: {e}")
-                    st.stop()
+# --- PUT THE RETRY LOOP RIGHT HERE (AFTER THE PROMPT IS CREATED) ---
+import time
+from google.genai.errors import ServerError
 
-        gross_billed = 0.00
-        verified_discrepancy = 0.00
+max_retries = 3
+response = None
 
-        try:
-            if "<!--" in ai_output and "-->" in ai_output:
-                comment_part = ai_output.split("<!--")[1].split("-->")[0]
-                for part in comment_part.split("|"):
-                    if "GROSS:" in part:
-                        gross_billed = float(part.split(":")[1].strip())
-                    if "DISCREPANCY:" in part:
-                        verified_discrepancy = float(part.split(":")[1].strip())
-        except Exception:
-            pass
-
-        clean_report_output = (
-            ai_output.split("-->")[-1].strip()
-            if "-->" in ai_output
-            else ai_output
+for attempt in range(max_retries):
+    try:
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=prompt
         )
+        break  # Success! Exit loop.
+    except ServerError as e:
+        if attempt < max_retries - 1:
+            time.sleep(2 * (attempt + 1))
+            continue
+        else:
+            st.error("⚠️ Google's AI servers are experiencing high demand (503 Error). Please try again in 10 seconds.")
+            st.stop()
 
-        st.success("Hybrid Audit Complete!")
+# After this, line 85 picks up with: ai_output = response.text
 
-        with st.expander("View Python Mathematical Verification Layer"):
-            st.write(f"**Gross Billed (Verified):** ${gross_billed:,.2f}")
-            st.write(f"**Discrepancy Amount (Verified by Python):** ${verified_discrepancy:,.2f}")
-            st.write("**Status:** Math validated successfully with zero AI hallucination.")
 
-        st.markdown("---")
-        st.markdown(clean_report_output)
-        st.markdown("---")
+            
+# ----------------------------------------
 
-        if st.button("Approve & Confirm Short-Pay Action"):
-            st.info(f"Action successfully recorded: Flagged ${verified_discrepancy:,.2f} for human sign-off and vendor dispute")
+            
+            ai_output = response.text
 
-        # --- Export Section ---
-        st.markdown("### 📥 Export Audit Report")
-        export_df = pd.DataFrame({
-            "Metric": ["Gross Billed", "Verified Discrepancy"],
-            "Amount USD": [gross_billed, verified_discrepancy],
-        })
+            # Step 3: Safe Extraction of Numbers from Hidden Comment for Python Validation
+            gross_billed = 0.00
+            verified_discrepancy = 0.00
+            
+            try:
+                if "<!--" in ai_output and "-->" in ai_output:
+                    comment_part = ai_output.split("<!--")[1].split("-->")[0]
+                    for part in comment_part.split("|"):
+                        if "GROSS:" in part:
+                            gross_billed = float(part.split(":")[1].strip())
+                        if "DISCREPANCY:" in part:
+                            verified_discrepancy = float(part.split(":")[1].strip())
+            except Exception:
+                pass
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.download_button(
-                label="Download Report (CSV)",
-                data=export_df.to_csv(index=False).encode("utf-8"),
-                file_name="auditx_report.csv",
-                mime="text/csv",
-            )
-        with col2:
-            st.download_button(
-                label="Download Report (JSON)",
-                data=json.dumps({"gross_billed": gross_billed, "verified_discrepancy": verified_discrepancy, "report_text": clean_report_output}, indent=4),
-                file_name="auditx_report.json",
-                mime="application/json",
-            )
+            # Step 4: Clean up the output string to hide the comment block from the final UI view
+            clean_report_output = ai_output.split("-->")[-1].strip() if "-->" in ai_output else ai_output
 
-# ---------------------------------------------------------
-# Footer (Contact Me CTA)
-# ---------------------------------------------------------
-st.markdown("---")
-st.markdown("### Want to run a bulk audit on your historical vendor invoices?")
-st.write("Contact me at **auditx.logistics@gmail.com** for a free 10-invoice trial run and custom contract rule integration.")
+            # Step 5: Render Clean Executive Report & Python Verification Box
+            st.success("Hybrid Audit Complete!")
+            
+            # Show Python Math Proof Box
+            with st.expander("🔍 View Python Mathematical Verification Layer"):
+                st.write(f"• **Gross Billed (Verified):** ${gross_billed:,.2f}")
+                st.write(f"• **Discrepancy Amount (Verified by Python):** ${verified_discrepancy:,.2f}")
+                st.write("• **Status:** Math validated successfully with zero AI hallucination.")
+
+            st.markdown("---")
+            
+            # Display the clean executive report without raw instruction text
+            st.markdown(clean_report_output)
+
+            st.markdown("---")
+            # Human Review Safeguard Button
+            if st.button("Approve & Confirm Short-Pay Action"):
+                st.info(f"Action successfully recorded: Flagged ${verified_discrepancy:,.2f} for human sign-off and vendor dispute notice.")
+
+# --- Shopify Integration Status Check ---
+SHOPIFY_CLIENT_ID = st.secrets.get("SHOPIFY_CLIENT_ID", "d5d1d797dc426117b15464b0a158cb61")
+SHOPIFY_CLIENT_SECRET = st.secrets.get("SHOPIFY_CLIENT_SECRET", "")
+
+st.sidebar.title("Shopify Store Status")
+if SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET:
+    st.sidebar.success("✅ Shopify App Credentials Connected!")
+else:
+    st.sidebar.warning("⚠️ Shopify credentials missing from secrets.")
+

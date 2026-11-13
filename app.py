@@ -22,34 +22,78 @@ st.sidebar.caption("AuditX Enterprise B2B Compliance Engine v3.2")
 st.title("📄 AuditX: Hybrid AI & Compliance Audit Engine")
 st.markdown("Automated cross-industry invoice data extraction paired with deterministic Python financial math.")
 
-# File Uploader
-uploaded_file = st.file_uploader("Upload Any Vendor Invoice (PDF)", type=["pdf"])
+# --- DEMO INVOICE PRE-SET DATA ---
+SAMPLE_INVOICE_TEXT = """
+INVOICE #INV-2026-99482
+Vendor: FastFreight Global Logistics LLC
+Bill To: Enterprise Retail Corp
+Date: November 13, 2026
+
+DESCRIPTION                          QTY    RATE       TOTAL
+----------------------------------------------------------------
+Ocean Freight Standard Containers     2     $2,500.00   $5,000.00
+Bunker Adjustment Factor (BAF)        1     $450.00     $450.00
+Peak Season Surcharge                 1     $300.00     $300.00
+Administrative Handling Fee           1     $225.00     $225.00 (DISPUTED: Unauthorized fee per contract clause 4.2)
+
+TOTAL AMOUNT BILLED: $5,975.00
+"""
+
+# Demo State Management
+if "use_demo" not in st.session_state:
+    st.session_state.use_demo = False
+
+col1, col2 = st.columns([2, 1])
+with col1:
+    # --- REAL-WORLD PDF INVOICE UPLOADER ---
+    uploaded_file = st.file_uploader("Upload Any Real-World Vendor Invoice (PDF)", type=["pdf"])
+with col2:
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🚀 Load Demo Sample"):
+        st.session_state.use_demo = True
 
 # Initialize GenAI Client securely using Streamlit Secrets or Environment Variable
 api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", "")
 
+# Determine if we are processing a real uploaded file or the demo text
+extracted_text = ""
+is_running = False
+
 if uploaded_file is not None:
-    if not api_key:
-        st.error("⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit App Secrets.")
-    else:
-        with st.spinner("AI is analyzing invoice and Python is verifying the numbers..."):
-            # Step 1: Extract text from PDF using pdfplumber
-            extracted_text = ""
+    st.session_state.use_demo = False
+    with st.spinner("Extracting text from your uploaded real-world PDF invoice..."):
+        try:
             with pdfplumber.open(uploaded_file) as pdf:
                 for page in pdf.pages:
                     extracted_text += page.extract_text() or ""
+            if not extracted_text.strip():
+                st.warning("⚠️ Could not extract text. The PDF might be a scanned image. Ensure it contains selectable text.")
+            else:
+                is_running = True
+        except Exception as e:
+            st.error(f"Error reading PDF file: {e}")
 
-            # Step 2: Call Gemini Flash with hidden tag format for clean parsing
+elif st.session_state.use_demo:
+    extracted_text = SAMPLE_INVOICE_TEXT
+    is_running = True
+
+if is_running and extracted_text.strip():
+    if not api_key:
+        st.error("⚠️ GEMINI_API_KEY is missing! Please add it to your Streamlit App Secrets.")
+    else:
+        with st.spinner("AI is analyzing invoice text and Python is verifying the numbers..."):
+            
+            # Call Gemini Flash with hidden tag format for clean parsing
             client = genai.Client(api_key=api_key)
             
             prompt = f"""
 You are an elite enterprise financial auditor. Analyze this vendor invoice text and generate a structured audit report.
 
 CRITICAL INSTRUCTIONS:
-Put your raw data variables strictly inside hidden HTML comment tags at the very top like this: <!-- GROSS: 4625.00 | DISCREPANCY: 675.00 -->
+Put your raw data variables strictly inside hidden HTML comment tags at the very top like this: <!-- GROSS: 5975.00 | DISCREPANCY: 225.00 -->
 Do not print raw text headers outside of that comment. After the comment, provide only the clean Markdown executive report:
 
-<!-- GROSS: [Extract total billed amount as number, e.g. 4625.00] | DISCREPANCY: [Extract sum of flagged disputed fees as number, e.g. 675.00 or 0.00] -->
+<!-- GROSS: [Extract total billed amount as number, e.g. 5975.00] | DISCREPANCY: [Extract sum of flagged disputed fees as number, e.g. 225.00 or 0.00] -->
 
 ### 📋 Executive Summary
 - **Vendor Name:** [Extract Vendor Name]

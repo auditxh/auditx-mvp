@@ -9,7 +9,7 @@ from google.genai.errors import ServerError
 st.set_page_config(page_title="AuditX: AI Invoice Audit Engine", page_icon="📄", layout="centered")
 
 # UI Header
-st.title("🛡️ AuditX: Hybrid AI & Compliance Audit Engine")
+st.title("🧾 AuditX: Hybrid AI & Compliance Audit Engine")
 st.markdown("Automated cross-industry invoice data extraction paired with deterministic Python financial math to eliminate billing leakage.")
 
 # --- DEMO INVOICE PRE-SET DATA ---
@@ -118,7 +118,7 @@ Invoice Text:
             for attempt in range(max_retries):
                 try:
                     response = client.models.generate_content(
-                        model='gemini-1.5-flash',
+                        model='gemini-3.8-flash',
                         contents=prompt
                     )
                     break  # Success! Exit loop.
